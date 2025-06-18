@@ -1,0 +1,238 @@
+#include<bits/stdc++.h>
+#define ll long long
+using namespace std;
+
+template<class T> class Kingdom;
+
+class Sentinel{
+    protected:
+        ll id;
+        string name;
+        ll rank;
+    
+    public:
+        //Default Constructor
+        Sentinel(){}
+
+        //Constructor
+        Sentinel(ll ID, string n, ll r){
+            id = ID;
+            name = n;
+            rank = r;
+        }
+
+        //pure virtual function for countHigherRanked
+        virtual void countHigherRanked(ll s_cnt, ll d_cnt, ll c_cnt) = 0;
+
+        //getters
+        ll getid(){
+            return id;
+        }
+
+        string getname(){
+            return name;
+        }
+
+        ll getrank(){
+            return rank;
+        }
+        friend class CustomComparator;
+};
+
+
+class Senapati: public Sentinel{
+    public:
+        //default constructor
+        Senapati():Sentinel(){}
+        //constructor
+        Senapati(ll ID, string n, ll r): Sentinel(ID, n, r){
+
+        }
+        
+        //overriding countHigherRanked
+        void countHigherRanked(ll s_cnt, ll d_cnt, ll c_cnt){
+            cout << 0 << "\n";
+        }
+};
+
+class Dandanayaka: public Sentinel{
+    public:
+        //default constructor
+        Dandanayaka():Sentinel(){}
+        //constructor
+        Dandanayaka(ll ID, string n, ll r): Sentinel(ID, n, r){
+            
+        }
+
+        //overriding countHigherRanked
+        void countHigherRanked(ll s_cnt, ll d_cnt, ll c_cnt){
+            cout << s_cnt << "\n";
+        }
+        
+};
+
+class Chaturangini: public Sentinel{
+    public:
+        //default constructor
+        Chaturangini():Sentinel(){}
+
+        //constructor
+        Chaturangini(ll ID, string n, ll r): Sentinel(ID, n, r){
+            
+        }
+
+        //overriding countHigherRanked
+        void countHigherRanked(ll s_cnt, ll d_cnt, ll c_cnt){
+            cout << s_cnt + d_cnt << "\n";
+        }
+        
+};
+
+class CustomComparator {
+    public:
+        bool operator()(Sentinel* a, Sentinel* b){
+            if(a->getrank() == b->getrank()){
+                return a->getid() < b->getid();
+            }
+            return a->getrank() > b->getrank();
+        }
+};
+
+
+template <class T>
+class Kingdom{
+    private:
+        ll senapati_count = 0;
+        ll dandanayaka_count = 0;
+        ll chaturangini_count = 0;
+        ll n; // number of nodes
+        vector<Sentinel*> nodes;
+        vector<Sentinel*> sorted_nodes;
+        bool sorted = false;
+        vector<set<ll>> adjList;
+        vector<set<ll>>adjList2;
+        vector<ll> visited;
+    public:
+        //Default constructor
+        Kingdom(){
+        }
+
+        //Constructor
+        Kingdom(ll num_nodes){
+            n = num_nodes;
+            adjList.resize(n);
+            visited.resize(n,0);
+        }
+
+        void addEdge(ll u, ll v){
+            adjList[u].insert(v);
+            adjList[v].insert(u);
+            adjList[min(u,v)].insert(max(u,v));
+        }
+
+        void addNode(Sentinel* temp){
+            nodes.push_back(temp);
+            sorted_nodes.push_back(temp);
+            if (temp->getrank() == 2){
+                senapati_count++;
+            }
+            else if (temp->getrank() == 1){
+                dandanayaka_count++;
+            }
+            else if (temp->getrank() == 0){
+                chaturangini_count++;
+            }
+        }
+
+        //function to compute minimum vertex cover
+        ll min_vertex_cover(){
+            vector<vector<ll>> memo(n,{0,0});
+            vector<ll> ans = minVC(0,memo);
+            memo[0][0] = ans[0];
+            memo[0][1] = ans[1];
+            return min(memo[0][0],memo[0][1]);
+        }
+
+        vector<ll> minVC(ll node, vector<vector<ll>>& memo){
+            visited[node] = 1;
+            ll exc_node = 0;
+            ll inc_node = 1;
+            for(ll c: adjList[node]){
+                if(!visited[c]){
+                    vector<ll> ans = minVC(c,memo);
+                    memo[c][0] = ans[0];
+                    memo[c][1] = ans[1];
+                    exc_node += memo[c][1];
+                    inc_node += min(memo[c][0],memo[c][1]);
+                }
+            }
+            return {exc_node,inc_node};
+        }
+
+        //function to sort sentinels
+        void sort_sentinels(){
+            if(sorted == false){
+                CustomComparator C;
+                sort(sorted_nodes.begin(), sorted_nodes.end(),C);
+                sorted = true;
+            }
+            for(ll i = 0; i < n; i++){
+                cout << sorted_nodes[i]->getid() << " ";
+            }
+            cout << "\n";
+        }
+
+        //function to count higher ranked
+        void countHigherRanked(ll u){
+            nodes[u]->countHigherRanked(senapati_count, dandanayaka_count, chaturangini_count);
+            
+        }
+
+    friend class Sentinel;
+};
+
+
+int main(){
+    ll n;
+    cin >> n;
+    Kingdom<Sentinel> k(n);
+    ll u, v;
+    for(ll i = 0; i < n-1;i++){
+        cin >> u >> v;
+        k.addEdge(u,v);
+    }
+    string name, rank;
+    for(ll i = 0; i < n; i++){
+        cin >> name >> rank;
+        if(rank == "SENAPATI"){
+            Senapati* temp = new Senapati(i,name,2);
+            k.addNode(temp);
+        }
+        else if(rank == "DANDANAYAKA"){
+            Dandanayaka* temp = new Dandanayaka(i,name,1);
+            k.addNode(temp);
+        }
+        else if(rank == "CHATURANGINI"){
+            Chaturangini* temp = new Chaturangini(i,name,0);
+            k.addNode(temp);
+        }
+    }
+    ll q;
+    cin >> q;
+    ll qtype;
+    ll q_id;
+    for(ll i = 0; i < q; i++){
+        cin >> qtype;
+        if(qtype == 1){
+            cout << k.min_vertex_cover() << "\n";
+        }
+        else if(qtype == 2){
+            k.sort_sentinels();
+        }
+        else if(qtype == 3){
+            cin >> q_id;
+            k.countHigherRanked(q_id);
+        }
+    }
+    return 0;
+}
