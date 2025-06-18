@@ -1,0 +1,185 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+class Graph{
+
+public:
+    vector<set<int>> adjacencyList;
+
+    void operator +(Graph& g){
+        N = max(N,g.N);
+        adjacencyList.resize(N);
+        for(int i = 0; i < g.N; i++){
+            for(auto j:g.adjacencyList[i]){
+                if(adjacencyList[i].find(j) == adjacencyList[i].end()){
+                    addEdge(i,j);
+                }
+                else{
+                    continue;
+                }
+            }
+        }
+    }
+
+    void operator -(Graph& g){
+        N = max(N,g.N);
+        adjacencyList.resize(N);
+        for(int i = 0; i < N; i++){
+            for(auto it = adjacencyList[i].begin(); it != adjacencyList[i].end();){
+                int j = *it;
+                it++;
+                if(i >= g.N){
+                    removeEdge(i,j);
+                    continue;
+                }
+                if(g.adjacencyList[i].find(j) == g.adjacencyList[i].end()){
+                    removeEdge(i,j);
+                }
+            }
+        }
+    }
+
+    void operator !(){
+        for(int i = 0; i < N; i ++){
+            for(int j = 0; j < N; j++){
+                if(i == j){
+                    continue;
+                }
+                if(adjacencyList[i].find(j) == adjacencyList[i].end()){
+                    adjacencyList[i].insert(j);
+                }
+                else{
+                    adjacencyList[i].erase(j);
+                }
+            }
+        }
+    }
+
+    bool isReachable(int v1, int v2, unordered_set<int> &visited){
+        if(adjacencyList[v1].find(v2)!= adjacencyList[v1].end()){
+            return true;
+        }
+
+        for(auto i: adjacencyList[v1]){
+            if(visited.find(i) == visited.end()){
+                visited.insert(i);
+                if(isReachable(i,v2,visited)){
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    bool isReachable(int v1, int v2){
+        unordered_set<int> visited;
+        return isReachable(v1,v2,visited);
+    }
+
+    void addEdge(int v1, int v2){
+        adjacencyList[v1].insert(v2);
+        adjacencyList[v2].insert(v1);
+    }
+
+    void removeEdge(int v1, int v2){
+        adjacencyList[v1].erase(v2);
+        adjacencyList[v2].erase(v1);
+    }
+
+private:
+    int N;
+    int M;
+friend void operator >> (istream& stream, Graph& g);
+friend void operator << (ostream& stream, Graph& g);
+};
+
+void operator >> (istream& stream, Graph &g) {
+    int N, M;
+    stream >> N >> M;
+    g.N = N;
+    g.M = M;
+    g.adjacencyList.resize(N);
+    for(int i = 0; i < M; i++){
+        int v1,v2;
+        stream >> v1 >> v2;
+        g.addEdge(v1,v2);
+    }
+    
+}
+
+void operator << (ostream& stream, Graph &g) {
+    for(int i = 0; i < g.N; i++){
+        stream << "Vertex " << i <<":";
+        for(auto j: g.adjacencyList[i]){
+            stream << " " << j;
+        }
+        stream << endl;
+    }
+    
+}
+
+int main(){
+    Graph G;
+    string instruction;
+    cin >> instruction;
+    if(instruction != "Graph"){
+        return 0;
+    }
+    cin >> G;
+
+    cin >> instruction;
+
+    while(instruction != "end"){
+        if(instruction == "union"){
+            Graph G2;
+            string graph_instr;
+            cin >> graph_instr;
+            cin >> G2;
+            G + G2;
+        }
+        else if(instruction == "intersection"){
+            Graph G2;
+            string graph_instr;
+            cin >> graph_instr;
+            cin >> G2;
+            G - G2;
+        }
+        else if(instruction == "complement"){
+            !G;
+        }
+        else if(instruction == "isReachable"){
+            int v1, v2;
+            cin >> v1 >> v2;
+            if(G.isReachable(v1,v2)){
+                cout << "Yes" << endl;
+            }
+            else{
+                cout << "No" << endl;
+            };
+        }
+        else if(instruction == "add_edge"){
+            int v1, v2;
+            cin >> v1 >> v2;
+            G.addEdge(v1,v2);
+        }
+        else if(instruction == "remove_edge"){
+            int v1, v2;
+            cin >> v1 >> v2;
+            G.removeEdge(v1,v2);
+        }
+        else if(instruction == "printGraph"){
+            cout << G;
+        }
+        else{
+            break;
+        }
+        cin >> instruction;
+
+    }
+
+
+
+
+    return 0;
+}
