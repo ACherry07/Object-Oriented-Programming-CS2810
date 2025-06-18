@@ -1,0 +1,349 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+//Book Class
+class Book{
+
+public:
+    string title;
+    string author;
+
+    //Constructor with Default Arguments
+    Book(string Title = "UnknownTitle",
+    string Author = "UnknownAuthor", 
+    string ISBN = "ISBN", 
+    int CopiesAvailable = 0, 
+    int TotalCopies = 5){
+        title = Title;
+        author = Author;
+        isbn = ISBN;
+        copiesAvailable = CopiesAvailable;
+        totalCopies = TotalCopies;
+    }
+
+    //Copy Constructor with new ISBN
+    Book(Book &OldBook, string NewISBN){
+        title = OldBook.title;
+        author = OldBook.author;
+        isbn = NewISBN;
+        copiesAvailable = OldBook.copiesAvailable;
+        totalCopies = OldBook.totalCopies;
+    }
+
+    //Getters
+    //To get ISBN
+    string getISBN(){
+        return isbn;
+    }
+
+    //To get copiesAvailable
+    int getCopiesAvailable(){
+        return copiesAvailable;
+    }
+
+    //To get totalCopies
+    int getTotalCopies(){
+        return totalCopies;
+    }
+
+    //Setters
+    //To update copies
+    void updateCopies(int Count){
+        if((copiesAvailable+Count)>=0 && (totalCopies + Count)>=0){
+            copiesAvailable += Count;
+            totalCopies += Count;
+        }
+        else{
+            cout << "Invalid request! Count becomes negative" << endl;
+        }
+
+    }
+
+    //Utility Functions
+    //To borrow a book
+    bool borrowBook(){
+        if(copiesAvailable > 0){
+            copiesAvailable--;
+            return true;
+        }
+        else{
+            cout << "Invalid request! Copy of book not available" << endl;
+            return false;
+        }
+    }
+
+    //To return a book
+    bool returnBook(){
+        if(copiesAvailable < totalCopies){
+            copiesAvailable++;
+            return true;
+        }
+        else{
+            cout << "Invalid request! Copy of book exceeds total copies" << endl;
+            return false;
+        }
+    }
+
+    //To print details of a Book
+    void printDetails(){
+        cout << title << " " << author << endl;
+    }
+
+private:
+    string isbn;
+    int copiesAvailable;
+    int totalCopies;
+
+friend class Library;
+};
+
+
+//Member class
+class Member{
+
+public:
+    string name;
+
+    //Constructor with default BorrowLimit
+    Member(string MemberID = "DefaultValue", string Name = "DefaultValue", int BorrowLimit = 3){
+        memberID = MemberID;
+        name = Name;
+        borrowLimit = BorrowLimit;
+    }
+
+    //Utility methods
+    //To borrow a book
+    bool borrowBook(string ISBN){
+        if(copiesBorrowed < borrowLimit){
+            copiesBorrowed++;
+            borrowedBooks[ISBN]++;
+            return true;
+        }
+        else{
+            cout << "Invalid request! Borrow limit exceeded" << endl;
+            return false;
+        }
+    }
+
+    //To return a book
+    bool returnBook(string ISBN){
+        if(borrowedBooks.find(ISBN) != borrowedBooks.end()){
+            borrowedBooks[ISBN]--;
+            if(borrowedBooks[ISBN] == 0){
+                borrowedBooks.erase(ISBN);
+            }
+            copiesBorrowed--;
+            return true;
+        }
+        else{
+            cout << "Invalid request! Book not borrowed" << endl;
+            return false;
+        }
+    };
+
+    //To print Member Details
+    void printDetails(){
+        for(auto i: borrowedBooks){
+            cout << memberID << " " << name << " " << i.first << " " << i.second << endl;
+        }
+    }
+
+private:
+    string memberID;
+    map<string,int> borrowedBooks;
+    int borrowLimit;
+    int copiesBorrowed = 0;
+
+friend class Library;
+};
+
+class Library{
+    
+public:
+
+    //Utility Methods
+
+    //To add a book to the Library
+    bool addBook(Book& NewBook){
+        if(isbnBookMap.find(NewBook.isbn)!=isbnBookMap.end()){
+            cout << "Invalid request! Book with same isbn already exists" << endl;
+            return false;
+        }
+        else{
+            books.push_back(NewBook);
+            isbnBookMap[NewBook.isbn] = NewBook;
+            return true;
+        }
+    }
+
+    //To add a new member to the Library
+    bool registerMember(Member& NewMember){
+        if(memberIDMemberMap.find(NewMember.memberID) != memberIDMemberMap.end()){
+            cout << "Invalid request! Member with same id already exists" << endl;
+            return false;
+        }
+        else{
+            members.push_back(NewMember);
+            memberIDMemberMap[NewMember.memberID] = NewMember;
+            return true;
+        }
+    }
+
+    //To borrow a book from the Library
+    bool borrowBook(string MemberID, string ISBN){
+        if(isbnBookMap.count(ISBN) == 0 || memberIDMemberMap.count(MemberID) == 0){
+            return false;
+        }
+        if(isbnBookMap[ISBN].borrowBook()){
+            if(memberIDMemberMap[MemberID].borrowBook(ISBN)){
+                return true;
+            }
+            else{
+                isbnBookMap[ISBN].returnBook();
+                return false;
+            }
+        }
+        else{
+            return false;
+        }
+    }
+
+    //To return a book to the Library
+    bool returnBook(string MemberID, string ISBN){
+        if(isbnBookMap.count(ISBN) == 0 || memberIDMemberMap.count(MemberID) == 0){
+            return false;
+        }
+        if(isbnBookMap[ISBN].returnBook()){
+            if(memberIDMemberMap[MemberID].returnBook(ISBN)){
+                return true;
+            }
+            else{
+                isbnBookMap[ISBN].borrowBook();
+                return false;
+            }
+        }
+        else{
+            return false;
+        }
+    }
+
+    //To print the Library Details
+    void printLibraryDetails(){
+        for(auto book : books){
+            cout << book.title << " " << book.author << " " << isbnBookMap[book.getISBN()].copiesAvailable << endl;
+        }
+        for(auto member: members){
+            cout << member.memberID << " " << member.name << endl;
+        }
+    }
+
+    //Getter functions
+    //To get a book from library
+    Book& getBookDetails(string ISBN){
+        return isbnBookMap[ISBN];
+    }
+
+    //To get a book from library
+    Member& getMemberDetails(string MemberID){
+        return memberIDMemberMap[MemberID];
+    }
+
+private:
+    vector<Book> books;
+    vector<Member> members;
+    map<string, Book> isbnBookMap;
+    map<string, Member> memberIDMemberMap;
+
+};
+
+int main(){
+    Library library;
+    string instruction;
+    cin >> instruction;
+
+    while(instruction != "Done"){
+        if(instruction == "Book"){
+            string Title;
+            cin >> Title;
+            if(Title == "None"){
+                Book b;
+                library.addBook(b);
+            }
+            else if(Title == "ExistingBook"){
+                string OldISBN;
+                string NewISBN;
+                cin >> OldISBN >> NewISBN;
+                Book OldBook = library.getBookDetails(OldISBN);
+                Book b(OldBook, NewISBN);
+                library.addBook(b);
+            }
+            else{
+                string Author;
+                string ISBN;
+                int CopiesAvialable;
+                int TotalCopies;
+                cin >> Author >> ISBN >> CopiesAvialable >> TotalCopies;
+                Book b(Title,Author, ISBN, CopiesAvialable, TotalCopies);
+                library.addBook(b);
+            }
+        }
+        else if(instruction == "UpdateCopiesCount"){
+            string ISBN;
+            int NewCount;
+            cin >> ISBN >> NewCount;
+            library.getBookDetails(ISBN).updateCopies(NewCount);
+        }
+        else if(instruction == "Member"){
+            string MemberCase;
+            cin >> MemberCase;
+            if(MemberCase == "NoBorrowLimit"){
+                string MemberID;
+                string Name;
+                cin >> MemberID >> Name;
+                Member m(MemberID,Name);
+                library.registerMember(m);
+            }
+            else{
+                string Name;
+                int BorrowLimit;
+                cin >> Name >> BorrowLimit;
+                Member m(MemberCase,Name,BorrowLimit);
+                library.registerMember(m);
+            }
+        }
+        else if(instruction == "Borrow"){
+            string MemberID;
+            string ISBN;
+            cin >> MemberID >> ISBN;
+            library.borrowBook(MemberID, ISBN);
+
+        }
+        else if(instruction == "Return"){
+            string MemberID;
+            string ISBN;
+            cin >> MemberID >> ISBN;
+            library.returnBook(MemberID, ISBN);
+        }
+        else if(instruction == "PrintBook"){
+            string ISBN;
+            cin >> ISBN;
+            //cout << "Book Details" << endl;
+            library.getBookDetails(ISBN).printDetails();
+        }
+        else if(instruction == "PrintMember"){
+            string MemberID;
+            cin >> MemberID;
+            //cout << "Member Details" << endl;
+            library.getMemberDetails(MemberID).printDetails();
+        }
+        else if(instruction == "PrintLibrary"){
+            //cout << "Library" << endl;
+            library.printLibraryDetails();
+        }
+        else{
+            break;
+        }
+        cin >> instruction;
+    }
+}
