@@ -1,0 +1,271 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define ll long long
+
+const ll mod = 1000000007;
+
+//Currency Sorter
+class CurrencySorter{
+
+public:
+    //Functor
+    void operator()(vector<int> &v){
+        quicksort(v,0,v.size()-1);
+    }
+
+    //Quicksort function
+    void quicksort(vector<int> &v,ll l, ll r){
+        //Quicksort code to be implemented here;
+        if(l>=r || l < 0){
+            return;
+        }
+        ll p = partition(v,l,r);
+        quicksort(v,l,p-1);
+        quicksort(v,p+1,r);
+    }
+    
+    // Partition Function
+    ll partition(vector<int> &v, ll start, ll end){
+        int pivot = v[end];
+        ll i = start; //stores a temporary pivot
+        for(ll j = start; j < end; j++){
+            if(v[j] <= pivot){
+                swap(v[i],v[j]);
+                i++;
+            }
+        }
+        swap(v[i],v[end]);
+        return i;
+    }
+};
+
+class FibonacciGenerator{
+
+public:
+    //Functor for FibonacciGenerator
+    ll operator()(ll i){
+        return fib(i).first;
+    }
+
+    pair<ll,ll> fib(ll n){
+        if(n==0){
+            return {0,1};
+        }
+        else{
+            pair<ll,ll> p = fib(n/2);
+            ll fnby2 = p.first, fnby2plus1 = p.second;
+            ll fn = (2*fnby2plus1 - fnby2);
+            if(fn < 0){
+                fn+=mod;
+            }
+            fn = (fnby2*fn)%mod;
+            ll fnplus1 = ((fnby2plus1*fnby2plus1) + (fnby2*fnby2))%mod;
+            if(n%2 == 0){
+                return {fn, fnplus1};
+            }
+            else{
+                return {fnplus1, (fn+fnplus1)};
+            }
+            
+        }
+    }
+};
+
+class PrimeCalculator{
+
+public:
+
+    //function to find all primes till 10e6
+    vector<ll> sieve(){
+        vector<bool> numIsPrime(1000000,true);
+        numIsPrime[0] = false;
+        numIsPrime[1] = false;
+        
+        for(int p = 2; p*p < 1000000; ++p){
+            if(numIsPrime[p]){
+                for(int mul = p*p; mul < 1000000; mul+=p ){
+                    numIsPrime[mul] = false;
+                }
+            }
+        }
+        vector<ll> primes;
+        for(int i =0; i < 1000000; i++){
+            if(numIsPrime[i]){
+                primes.push_back(i);
+            }
+        }
+        return primes;
+    }
+    //Vector of primes;
+    vector<ll> primes = sieve();
+    ll primes_size = primes.size();
+
+    //Primes in a range
+    vector<ll> primesInRange(ll L, ll R){ 
+        //cout << "Hi" << endl;
+        vector<bool> numIsPrime(R-L+1,true);
+        for(ll i = 0; i < primes_size; i++){
+            ll val = primes[i];
+            ll start = (L+val-1)/val *val;
+            start = max(start,val*val);
+            for(ll mul = start; mul <= R; mul+= val){
+                numIsPrime[mul-L] = false;
+            }
+        }
+
+        vector<ll> primes_in_range;
+        for(ll i = 0; i < (R-L+1);i++){
+            if(L+i == 1){
+                continue;
+            }
+            if(numIsPrime[i]){
+                primes_in_range.push_back(i+L);
+            }
+        }
+        return primes_in_range;
+    }
+    //function to print the Primes between L and R
+    void printPrimes(long long L, long long R){
+        vector<ll> answer = primesInRange(L,R);
+        for_each(answer.begin(),answer.end(),[](ll x){cout << x << " ";});
+        cout << endl;
+    }
+
+    //function to print the sum of Primes between L and R
+    void printPrimeSum(long long L, long long R){
+        ll sum = 0;
+        vector<ll> answer = primesInRange(L,R);
+        for_each(answer.begin(),answer.end(),[&sum](ll x){sum+=x;});
+        cout << sum << endl;
+
+    }
+
+};
+
+
+class NumberAnalyzer{
+
+public:
+    map<ll,ll> primeFactorization(ll n){
+        map<ll,ll>primefactorcount;
+        for(ll i = 2; i <= sqrt(n); i++){
+            while(n%i==0){
+                n=n/i;
+                primefactorcount[i]++;
+            }
+        }
+        if (n>2){
+            primefactorcount[n]++;
+        }
+        return primefactorcount;
+    }
+
+    //Function to check if X is square free
+    bool isSquareFree(ll X){
+        map<ll,ll> primefactorcount = primeFactorization(X);
+        for(auto i:primefactorcount){
+            if(i.second > 1){
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    //Function to count the number of divisors of X
+    ll countDivisors(ll X){
+        ll count = 1;
+        map<ll,ll> primefactorcount = primeFactorization(X);
+        for(auto i : primefactorcount){
+            count *= (i.second+1);
+        }
+        return count;
+    }
+
+    //Function to find the sum of divisors of X
+    ll sumOfDivisors(ll X){
+        ll sum = 1;
+        map<ll,ll> primefactorcount = primeFactorization(X);
+        for(auto i: primefactorcount){
+            ll i_sum = 1;
+            for(ll j = 1; j <= i.second; j ++){
+                i_sum = i_sum*i.first + 1;
+            }
+            sum *= i_sum;
+        }
+        return sum;
+    }
+
+
+};
+
+
+
+int main(){
+
+    CurrencySorter c;
+    FibonacciGenerator f;
+    PrimeCalculator p;
+    NumberAnalyzer a;
+
+    int case_num;
+    cin >> case_num;
+    int t;
+    cin >> t;
+    while(t--){
+        if (case_num == 1){
+            int n;
+            cin >> n;
+            vector<int> v(n);
+            for(int i = 0; i < n; i++){
+                cin >> v[i];
+            }
+            c(v);
+            for(int i = 0; i < n; i++){
+                cout<< v[i] << " ";
+            };
+            cout << endl;
+
+        }
+        else if(case_num == 2){
+            unsigned ll n;
+            cin >> n;
+            cout << f(n) << endl;
+
+        }
+        else if(case_num == 3){
+            string instr;
+            cin >> instr;
+            ll L, R;
+            cin >> L >> R;
+            if(instr == "printPrimes"){
+                p.printPrimes(L,R);
+            }
+            else if(instr == "printPrimeSum"){
+                p.printPrimeSum(L,R);
+            }
+        }
+        else if(case_num == 4){
+            string instr;
+            cin >> instr;
+            ll X;
+            cin >> X;    
+            if(instr == "isSquareFree"){
+                if(a.isSquareFree(X)){
+                    cout << "yes" << endl;
+                }
+                else{
+                    cout << "no" << endl;
+                }
+            }
+            else if(instr == "countDivisors"){
+                cout << a.countDivisors(X) << endl;
+            }
+            else if(instr == "sumOfDivisors"){
+                cout << a.sumOfDivisors(X) << endl;
+            }
+        }
+    }
+
+
+}
