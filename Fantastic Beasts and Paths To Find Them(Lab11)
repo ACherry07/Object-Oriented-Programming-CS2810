@@ -1,0 +1,274 @@
+#include<bits/stdc++.h>
+typedef long long ll;
+typedef long double ld;
+
+using namespace std;
+
+class Island{
+    protected:
+        int type;
+        int centroidX;
+        int centroidY;
+        ld circumradius;
+        string IslandID;
+    public:
+        //Default Constructor
+        Island(){}
+
+        virtual void takeinput(istream& input) = 0;
+
+        friend istream &operator>>( istream  &input, Island &island) { 
+            island.takeinput(input);
+            return input;            
+        }
+
+        friend ostream &operator << (ostream &output, Island &island){
+            output << island.IslandID << " ";
+            return output;
+        }
+
+    friend class IslandsGraph;
+};
+
+class Rectangle: public Island{
+    private:
+        int x1, y1, x2, y2, x3, y3, x4, y4;
+    public:
+        //Constructor
+        Rectangle(): Island(){
+            type = 1;
+        }
+
+        //function to takeinput
+        void takeinput(istream& input){
+            input >> IslandID >> x1 >> y1 >> x2 >> y2 >> x3 >> y3 >> x4 >> y4;
+            centroidX = (x1+x2+x3+x4)/4;
+            centroidY = (y1+y2+y3+y4)/4;
+            circumradius = sqrtl((centroidX - x1)*(centroidX-x1) + (centroidY - y1)*(centroidY-y1));
+        }
+
+
+};
+
+class Triangle: public Island{
+    private:
+        int x1, y1, x2, y2, x3, y3;
+    public:
+        //Constructor
+        Triangle(): Island(){
+            type = 2;
+        }
+
+        //function to takeinput
+        void takeinput(istream& input){
+            input >> IslandID >> x1 >> y1 >> x2 >> y2 >> x3 >> y3;
+            centroidX = (x1+x2+x3)/3;
+            centroidY = (y1+y2+y3)/3;
+            circumradius = max(max(sqrtl((centroidX - x1)*(centroidX-x1) + (centroidY - y1)*(centroidY-y1)),
+            sqrtl((centroidX - x2)*(centroidX-x2) + (centroidY - y2)*(centroidY-y2))),
+            sqrtl((centroidX - x3)*(centroidX-x3) + (centroidY - y3)*(centroidY-y3)));
+        }
+
+};
+
+class Circle: public Island{
+    private:
+        int x_centre, y_centre, radius;
+    public:
+        //Constructor
+        Circle(): Island(){
+            type = 3;
+        }   
+
+        //function to takeinput
+        void takeinput(istream& input){
+            input >> IslandID >> x_centre >> y_centre >> radius;
+            centroidX = x_centre;
+            centroidY = y_centre;
+            circumradius = radius;
+        }
+
+};
+
+class IslandsGraph{
+    private:
+        int num_of_islands;
+        vector<Island*> islands;
+        unordered_map<Island*, int> island_to_int;
+        unordered_map<int, Island* > int_to_island;
+        vector<vector<int>> edges;
+        vector<Island*> longestPath;
+        ll num_edges = 0;
+        bool edgeExists(int i1, int i2){
+            Island* island1 = int_to_island[i1];
+            Island* island2 = int_to_island[i2];
+            if(dist_between(island1->centroidX,island1->centroidY, island2->centroidX, island2->centroidY) <= (island1->circumradius + island2->circumradius)){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+
+        ld dist_between(int x1, int y1, int x2, int y2){
+            return sqrtl((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        }
+
+        int countSetBits(int n) {
+            int count = 0;
+            while (n > 0) {
+                n &= (n - 1); // Clears the least significant bit
+                count++;
+            }
+            return count;
+        }
+
+    public:
+        //Default Constructor
+        IslandsGraph(){
+
+        }
+        
+        //Constructor
+        IslandsGraph(int n){
+            num_of_islands = n;
+            edges.resize(n,vector<int> (n,0));
+        }
+
+        //function to add islands
+        void addIsland(Island* island){
+            islands.push_back(island);
+            int pos = islands.size()-1;
+            island_to_int[island] = pos;
+            int_to_island[pos] = island;
+            for(int i = 0; i < islands.size()-1; i++){
+                if(edgeExists(i,pos)){
+                    addEdge(i,pos);
+                }
+            }
+
+        }
+
+        //function to add edges if needed
+        void addEdge(int i, int pos){
+            edges[i][pos] = 1;
+            edges[pos][i] = 1;
+            num_edges++;
+        }
+
+        //function to find the required path
+        void longestReachable(){
+            if(num_edges == 0){
+                cout << "NO" << "\n";
+                cout << 1 << "\n";
+                cout << islands[0];
+                return;
+            }
+            //dp[i][mask] means whether it is possible to construct a path ending at vertex i for all vertices in a given mask/subset.
+            vector<vector<int>> dp(num_of_islands,vector<int>((1<<num_of_islands),0));
+            vector<vector<int>> parent(num_of_islands, vector<int>((1 << num_of_islands), -1));
+            for(int i = 0; i < num_of_islands; i ++){
+                dp[i][1<<i] = 1;
+            }
+            int max_mask = 0;
+            int last_vertex = 0;
+            for(int mask = 0; mask < (1<<num_of_islands); mask++){
+
+                for(int i = 0; i < num_of_islands; i++){
+
+                    //if the ith vertex is in the current mask
+                    if(mask & (1<<i)){
+
+                        //check other vertices in the current subset that are neighbours of i
+                        for(int j = 0; j < num_of_islands; j++){
+                            if((mask &(1<<j))
+                                && edges[j][i]
+                                && i != j
+                                && dp[j][mask^(1<<i)]){
+                                    dp[i][mask] = true;
+                                    parent[i][mask] = j;
+                                    if(countSetBits(mask) > countSetBits(max_mask)){
+                                        max_mask = mask;
+                                        last_vertex = i;
+                                        //cout << max_mask << " " << last_vertex << "\n";
+                                    }
+                                    break;
+                                }
+                        }
+                    }
+                }
+            }
+            if(max_mask == (1<<num_of_islands)-1){
+                cout << "YES" << "\n";
+            }
+            else{
+                cout << "NO" << "\n";
+                cout << countSetBits(max_mask) << "\n";
+            }
+            //cout << last_vertex << "\n";
+            int temp = last_vertex;
+            vector<int> longest_path;
+            while(max_mask) {
+                longest_path.push_back(last_vertex);
+                last_vertex = parent[last_vertex][max_mask];
+                max_mask ^= (1 << temp);  // Remove the vertex i from the mask
+                temp = last_vertex;
+                //cout << "here:" << max_mask << " " << last_vertex << "\n";
+            }
+            for(int i = 0; i < longest_path.size(); i++) {
+                cout << *int_to_island[longest_path[i]];
+            }
+            cout << "\n";
+        }
+
+        //Debugging option
+        void printIslands(){
+            for(int i = 0; i < islands.size(); i++){
+                cout << (*islands[i]);
+            }
+            cout << "\n";
+        }
+
+        //Debugging option for edges
+        void printEdges(){
+            for(int i = 0; i < num_of_islands; i++){
+                for (int j = 0; j < num_of_islands; j++){
+                    cout << edges[i][j] << " ";
+                }
+                cout << "\n";
+            }
+        }
+
+
+};
+
+int main(){
+    int n;
+    cin >> n;
+    string type;
+    IslandsGraph islandsGraph(n);
+    for(int i = 0; i < n; i++){
+        cin >> type;
+        if(type == "RECTANGLE"){
+            Rectangle* r = new Rectangle();
+            cin >> *r;
+            //cout << r;
+            islandsGraph.addIsland(r);
+        }
+        else if(type == "TRIANGLE"){
+            Triangle* t = new Triangle();
+            cin >> *t;
+            //cout << t;
+            islandsGraph.addIsland(t);
+        }
+        else if(type == "CIRCLE"){
+            Circle* c = new Circle();
+            cin >> *c;
+            //cout << c;
+            islandsGraph.addIsland(c);
+        }
+    }
+    // islandsGraph.printEdges();
+    // islandsGraph.printIslands();
+    islandsGraph.longestReachable();
+}
