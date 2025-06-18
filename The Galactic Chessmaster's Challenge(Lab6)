@@ -1,0 +1,671 @@
+#include<bits/stdc++.h>
+#define ll long long
+
+using namespace std;
+
+
+//Comparator for the sort function
+class Comparator{
+    public:
+    bool ascending;
+    Comparator(string order){
+        if(order == "ascending"){
+            ascending = true;
+        }
+        else{
+            ascending = false;
+        }
+    }
+    bool operator()(ll a, ll b){
+        if (ascending){
+            return a <= b;
+        }
+        else{
+            return b <= a;
+        }
+    }
+};
+
+
+class Chessboard{
+
+    public:
+    vector<vector<ll>> chessboard;
+    ll n;
+    ll nsquare;
+
+    //Method to set the Chessboard
+    void setChessboard(vector<vector<ll>> &board, ll N){
+        chessboard = board;
+        n = N;
+        nsquare = N*N;
+    }
+
+    
+
+    //sortRows function
+    void sortRows(Comparator comparator){
+        //do sorting part here
+        for(ll i = 0; i < n; i++){
+            sortRow(chessboard[i], comparator, 0, n-1);
+        }
+    }
+   
+    //To sort one row
+    ll sortRow(vector<ll> &row, Comparator comparator, ll start, ll end){
+        if(start >= end){
+            return 0;
+        }
+        ll mid = start + (end-start)/2;
+        ll left_half = sortRow(row,comparator,start,mid);
+        ll right_half = sortRow(row,comparator,mid+1,end);
+        ll merge_step = merge(row, comparator, start, mid, end);
+        return left_half + right_half + merge_step;
+        
+    }
+
+    //for the merge step;
+    ll merge(vector<ll> &row, Comparator comparator, ll start, ll mid, ll end){
+        vector<ll> first_half(mid-start+1);
+        vector<ll> second_half(end-mid);
+        for(ll i = 0; i < (mid-start+1); i++){
+            first_half[i] = row[start + i];
+        }
+        for(ll i = 0; i < (end- mid); i++){
+            second_half[i] = row[mid + 1 + i];
+        }
+
+        ll fh_pointer = 0;
+        ll sh_pointer = 0;
+        ll k = start;
+        ll inversion_count = 0;
+        //Comparing elements in both halves
+        while (fh_pointer < (mid-start+1) && sh_pointer < (end-mid)){
+            if(comparator(first_half[fh_pointer],second_half[sh_pointer])){
+                row[k] = first_half[fh_pointer];
+                k++;
+                fh_pointer++;
+            }
+            else{
+                inversion_count += (mid-start+1)-fh_pointer;
+                row[k] = second_half[sh_pointer];
+                k++;
+                sh_pointer++;
+            }
+        }
+        
+        //adding remaining elements if any
+        while(fh_pointer < (mid-start+1)){
+            row[k] = first_half[fh_pointer];
+            k++;
+            fh_pointer++;
+        }
+
+        while(sh_pointer < (end-mid)){
+            row[k] = second_half[sh_pointer];
+            k++;
+            sh_pointer++;
+        }
+        return inversion_count;
+    }
+
+    //Method to count the inversions;
+    ll countInversions(){
+        vector<ll> chessboard1D;
+        for(ll i = 0; i < n; i++){
+            chessboard1D.insert(chessboard1D.end(),chessboard[i].begin(),chessboard[i].end());
+        }
+        Comparator c("ascending");
+        return sortRow(chessboard1D,c,0,nsquare-1);
+    }
+
+    //Display method to print the matrix
+    void display(){
+        for(ll i = 0; i < n; i++){
+            for(ll j = 0; j < n; j++){
+                cout << chessboard[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+
+
+};
+
+class Xsort{
+    public:
+    bool operator()(pair<ll,ll> a, pair<ll,ll> b){
+        return a.first < b.first;
+    }
+};
+
+class Ysort{
+    public:
+    bool operator()(pair<ll,ll> a, pair<ll,ll> b){
+        return a.second < b.second;
+    }
+};
+
+
+//Class for the closest points
+class Plane2D{
+
+public:
+    vector<pair<ll,ll>> points;
+    map<pair<ll,ll>, ll> point_pos;
+    vector<pair<ll,ll>> ptsX;
+    vector<pair<ll,ll>> ptsY;
+    ll n;
+
+
+    //constructor
+    Plane2D(ll N, vector<pair<ll,ll>> Points){
+        n = N;
+        points = Points;
+        ptsX = Points;
+        ptsY = Points;
+        sort(ptsX.begin(),ptsX.end(),Xsort());
+        sort(ptsY.begin(),ptsY.end(),Ysort());
+        for(ll i = 0; i < n; i++){
+            point_pos[points[i]] = i;
+        }
+    }
+
+    void printPoints(pair<ll,ll> p1, pair<ll,ll> p2){
+        cout << p1.first << " " << p1.second << " " << p2.first << " " << p2.second << endl;
+    }
+
+    ll d_points(pair<ll,ll> p1, pair<ll,ll> p2){
+        ll xdist = p1.first - p2.first;
+        xdist *= xdist;
+        ll ydist = p1.second - p2.second;
+        ydist *= ydist;
+        ll dist = xdist + ydist;
+        return dist;
+    }
+
+    //closest pair driver
+    void closestPair(){
+        pair<pair<ll,ll>,pair<ll,ll>> cpair = closestPairRec(ptsX,ptsY);
+        if(point_pos[cpair.second] < point_pos[cpair.first]){
+            swap(cpair.first,cpair.second);
+        }
+        printPoints(cpair.first,cpair.second);
+    }
+
+    //recursive closestpair
+    pair<pair<ll,ll>,pair<ll,ll>> closestPairRec(vector<pair<ll,ll>> &Px, vector<pair<ll,ll>> &Py){
+        ll Psize = Px.size();
+        if(Psize == 2){
+            return {Px[0],Px[1]};
+        }
+        if(Psize == 3){
+        
+            pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> dist01 = {d_points(Px[0],Px[1]), {Px[0], Px[1]}};
+            pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> dist12 = {d_points(Px[1],Px[2]), {Px[1], Px[2]}};
+            pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> dist02 = {d_points(Px[0],Px[2]), {Px[0], Px[2]}};
+
+            if(dist01 <= dist12 && dist01 <= dist02){
+                return {Px[0], Px[1]};
+            }
+            if(dist12 <= dist01 && dist12 <= dist02){
+                return {Px[1], Px[2]};
+            }
+            if(dist02 <= dist01 && dist02 <= dist12){
+                return {Px[0], Px[2]};
+            }
+
+        }
+
+        vector<pair<ll,ll>> Qx;
+        vector<pair<ll,ll>> Qy;
+        vector<pair<ll,ll>> Rx;
+        vector<pair<ll,ll>> Ry;
+        ll midval = (Psize-1)/2;
+        pair<ll,ll> midX = Px[midval];
+        for(ll i = 0; i < Psize; i++){
+            if(Px[i].first <= midX.first && Qx.size() < (Psize+1)/2){
+                Qx.push_back(Px[i]);
+            }
+            else{
+                Rx.push_back(Px[i]);
+            }
+            if(Py[i].first <= midX.first && Qy.size() < (Psize+1)/2){
+                Qy.push_back(Py[i]);
+            }
+            else{
+                Ry.push_back(Py[i]);
+            }
+        }
+        ll Qsize = Qx.size();
+        ll Rsize = Rx.size();
+
+        pair<pair<ll,ll>,pair<ll,ll>> qpair = closestPairRec(Qx, Qy);
+        pair<pair<ll,ll>,pair<ll,ll>> rpair = closestPairRec(Rx, Ry);
+        pair<pair<ll,ll>,pair<ll,ll>> minpair = {{0,0},{1,1}};
+        pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> distq = {d_points(qpair.first,qpair.second), {qpair.first,qpair.second}};
+        pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> distr = {d_points(rpair.first,rpair.second), {rpair.first,rpair.second}};
+        ll delta = min(distq.first, distr.first);
+        if (distq <= distr && distq.first != 0 || distr.first == 0){
+            minpair = qpair;
+        }
+        else{
+            minpair = rpair;
+        }
+        pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> distpair = {delta,minpair};
+
+        ll x1star = Qx[Qsize-1].first;
+        vector<pair<ll,ll>> Sy;
+        for(ll i = 0; i < Psize; i++){
+            ll dist1_from_line = (Py[i].first - x1star);
+            dist1_from_line *= dist1_from_line;
+            if(dist1_from_line <= delta){
+                Sy.push_back(Py[i]);
+            }
+        }
+        ll Sysize = Sy.size();
+
+        for(ll i = 0; i < Sysize; i++){
+            for(ll j = i+1; j < min(i+16,Sysize); j++){
+                pair<pair<ll,ll>,pair<ll,ll>> this_pair = {Sy[i], Sy[j]};
+                pair<ll,pair<pair<ll,ll>,pair<ll,ll>>> distij = {d_points(Sy[i],Sy[j]), this_pair};
+                if(distij < distpair and distij.first != 0){
+                    distpair = distij;
+                }
+            }
+        }
+        return {distpair.second};
+    }
+};
+
+int main(){
+    string instr;
+    ll N;
+    Chessboard Board;
+    while(true){
+        cin >> instr;
+        if(instr == "CREATE_2D")
+        {
+            cin >> N;
+            vector<vector<ll>> board(N,vector<ll> (N));
+            for(ll i = 0; i < N; i++){
+                for(ll j = 0; j < N; j++){
+                    cin >> board[i][j];
+                }
+            }
+            Board.setChessboard(board,N);
+        }
+        else if(instr  == "SORT_2D"){
+            string order;
+            cin >> order;
+            Comparator c(order);
+            Board.sortRows(c);
+        }
+        else if(instr == "INVERSION_2D"){
+            cout << Board.countInversions() << endl;
+        }
+        else if(instr == "DISPLAY_2D"){
+            Board.display();
+        }
+        else if(instr == "CLOSEST_2D"){
+            ll N1;
+            cin >> N1;
+            if(N1==1){
+                continue;
+            }
+            vector<pair<ll,ll>> points(N1);
+            for(ll i = 0; i < N1; i++){
+                ll x , y;
+                cin >> x >> y;
+                points[i].first = x;
+                points[i].second = y;
+            }
+            Plane2D Plane1(N1,points);
+            Plane1.closestPair();
+        }
+        else if(instr == "END"){
+            break;
+        }
+    }
+    return 0;
+}
+/*
+MomSelect(A[1 .. n], k):
+    if n <= 25 ((or whatever))
+        use brute force
+    else
+        m  = ceil(n/ 5)
+        for i = 1 to m
+            M[i] = MedianOfFive(A[5i-4 .. 5i]) (Brute force!))
+        mom MomSelect(M[1 .. m], floor(m/2))
+        r = Partition(A[1 .. n], mom)
+        if k < r
+            return MOMSELECT(A[1..r-1 ],k)
+        else if k > r
+            return MOMSELECT(A[r + 1 .. n], k - r)
+    else
+        return mom
+*/
+
+
+
+/*
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+struct sorter {
+    int k; 
+    sorter(int k) : k(k) {} 
+    bool operator() (int x, int y){
+        if(k==1){
+            return y<x;
+        }
+        return x<y;
+    }
+};
+
+class Matrix {
+    private:
+        vector<vector<int> > matrix;
+        int n;
+    public:
+        Matrix(){
+            cin>>n;
+            for(int i = 0 ; i<n ; i++){
+                vector<int> r;
+                for(int j = 0 ; j<n ; j++){
+                    int x;
+                    cin>>x;
+                    r.push_back(x);
+                }
+                matrix.push_back(r);
+            }
+        }
+        void combine_sorter(vector<int> &v, int i, int j, sorter &comparator){
+            int mid = i+(j-i)/2;
+            int x = i;
+            int y = mid+1;
+            vector<int> a;
+            while(x<=mid && y<=j){
+                if(comparator(v[x], v[y])){
+                    a.push_back(v[x]);
+                    x++;
+                }
+                else{
+                    a.push_back(v[y]);
+                    y++;
+                }
+            }
+            if(x==mid+1){
+                while(y<=j){
+                    a.push_back(v[y]);
+                    y++;
+                }
+            }
+            else{
+                while(x<=mid){
+                    a.push_back(v[x]);
+                    x++;
+                }
+            }
+            for(int u = i ; u<=j ; u++){
+                v[u] = a[u-i];
+            }
+        }
+        void merge_sorter(vector<int> &v, int i, int j, sorter &comparator){
+            if(i==j){
+                return;
+            }
+            int mid = i+(j-i)/2;
+            merge_sorter(v, i, mid, comparator);
+            merge_sorter(v, mid+1, j, comparator);
+            combine_sorter(v, i, j, comparator);
+        }
+        void sortRows(sorter &comparator){
+            for(int u = 0 ; u<n ; u++){
+                merge_sorter(matrix[u], 0, matrix.size()-1, comparator);
+            }
+        }
+        void display(){
+            for(auto i : matrix){
+                for(auto j :i){
+                    cout<<j<<' ';
+                }
+                cout<<endl;
+            }
+        }
+        int combine_sorter_inv(vector<int> &v, int i, int j, sorter &comparator){
+            int mid = i+(j-i)/2;
+            int x = i;
+            int y = mid+1;
+            int loc_inv = 0;
+            vector<int> a;
+            while(x<=mid && y<=j){
+                if(comparator(v[x], v[y]) || v[x]==v[y]){
+                    a.push_back(v[x]);
+                    x++;
+                }
+                else{
+                    a.push_back(v[y]);
+                    loc_inv+=(mid-x+1);
+                    y++;
+                }
+            }
+            if(x==mid+1){
+                while(y<=j){
+                    a.push_back(v[y]);
+                    y++;
+                }
+            }
+            else{
+                while(x<=mid){
+                    a.push_back(v[x]);
+                    x++;
+                }
+            }
+            for(int u = i ; u<=j ; u++){
+                v[u] = a[u-i];
+            }
+            return loc_inv;
+        }
+        int merge_sorter_inv(vector<int> &v, int i, int j, sorter &comparator){
+            if(i==j){
+                return 0;
+            }
+            int mid = i+(j-i)/2;
+            int i1 = merge_sorter_inv(v, i, mid, comparator);
+            int i2 = merge_sorter_inv(v, mid+1, j, comparator);
+            int i3 = combine_sorter_inv(v, i, j, comparator);
+            return i1+i2+i3;
+        }
+        void countInversions(){
+            vector<int> v;
+            for(int i = 0 ; i<n ; i++){
+                for(int j = 0 ; j<n ; j++){
+                    v.push_back(matrix[i][j]);
+                }
+            }
+            sorter s(0);
+            cout<<merge_sorter_inv(v, 0, v.size()-1, s)<<endl;
+        }
+};
+
+pair<pair<int, int>, pair<int, int>> closest_pair(vector<pair<int, int>> &vx, vector<pair<int, int>> &vy, int i, int j) {
+    if (i == j) {
+        return {vx[i], {INT_MAX, INT_MAX}};
+    }
+    if (j - i == 1) {
+        return {vx[i], vx[j]};
+    }
+
+    int mid = i + (j - i) / 2;
+    int midX = vx[mid].first;
+    
+    vector<pair<int, int>> vyl, vyr;
+    for (auto &p : vy) {
+        if (p.first <= midX) vyl.push_back(p);
+        else vyr.push_back(p);
+    }
+
+    auto lp = closest_pair(vx, vyl, i, mid);
+    auto rp = closest_pair(vx, vyr, mid + 1, j);
+
+    double del1 = hypot(lp.first.first - lp.second.first, lp.first.second - lp.second.second);
+    double del2 = hypot(rp.first.first - rp.second.first, rp.first.second - rp.second.second);
+    double del = min(del1, del2);
+    auto best = (del == del1) ? lp : rp;
+
+    vector<pair<int, int>> vpy;
+    for (auto &p : vy) {
+        if (abs(p.first - midX) <= del) {
+            vpy.push_back(p);
+        }
+    }
+
+    double found_del = del;
+    for (int k = 0; k < vpy.size(); k++) {
+        for (int u = 1; u <= min(7LL, (int)vpy.size() - k - 1); u++) {
+            double rd = hypot(vpy[k].first - vpy[k + u].first, vpy[k].second - vpy[k + u].second);
+            if (rd < found_del) {
+                found_del = rd;
+                best = {vpy[k], vpy[k + u]};
+            }
+        }
+    }
+    return best;
+}
+
+void closestPair() {
+    int n;
+    cin >> n;
+    vector<pair<int, int>> vp(n);
+    vector<pair<int, int>> vx(n);
+    vector<pair<int, int>> vy(n);
+    map<pair<int, int>, int> pointIndex;
+
+    for (int i = 0; i < n; i++) {
+        int x, y;
+        cin >> x >> y;
+        vp[i] = {x, y};
+        vx[i] = vp[i];
+        vy[i] = vp[i];
+        pointIndex[vp[i]] = i;
+    }
+
+    sort(vx.begin(), vx.end());
+    sort(vy.begin(), vy.end(), [](pair<int, int> a, pair<int, int> b) {
+        return a.second < b.second;
+    });
+
+    auto res = closest_pair(vx, vy, 0, n - 1);
+    pair<int, int> p1 = res.first, p2 = res.second;
+
+    if (pointIndex[p1] > pointIndex[p2]) swap(p1, p2);
+    cout << p1.first << ' ' << p1.second << ' ' << p2.first << ' ' << p2.second << endl;
+}
+
+
+signed main(){
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    string s;
+    cin>>s;
+    if(s=="CREATE_2D"){
+        Matrix m;
+        while(cin >> s){
+            if(s=="SORT_2D"){
+                string x;
+                cin>>x;
+                if(x=="ascending"){
+                    sorter s(0);
+                    m.sortRows(s);
+                }
+                else{
+                    sorter s(1);
+                    m.sortRows(s);
+                }
+            }
+            else if(s=="INVERSION_2D"){
+                m.countInversions();
+            }
+            else if(s=="DISPLAY_2D"){
+                m.display();
+            }
+            else if(s=="CLOSEST_2D"){
+                closestPair();
+            }
+            else{
+                break;
+            }
+        }
+    }
+    else{
+        closestPair();
+        while(cin>>s){
+            if(s=="END"){
+                break;
+            }
+            closestPair();
+        }
+    }
+    return 0;
+}
+*/
+
+
+/*BFS
+BFS (G,s)
+    for each vertex u belonging to G.V - {s}
+        u.color = WHITE
+        u.d = infinity
+        u.pi = NIL
+    s.color = GRAY
+    s.d = 0
+    s.pi = NIL
+    queue<ll> Q
+    Enqueue(Q,s)
+    while (!Q.empty()){
+        u = Dequeue(Q)
+        for each vertex v in G.Adj[u]
+            if v.color = WHITE
+                v.color = GRAY
+                v.d = u.d + 1
+                v.pi = u
+                Enqueue(Q,v)
+        u.color = BLACK
+    }
+
+PrintPath(G,s,v){
+    if v == s
+        print s
+    else if v.pi == NIL
+        print "no path from "s" to v exists"
+    else print-path(G,s,v.pi)
+        print v
+}
+*/
+
+/*
+DFS(G){
+    for each vertex in G.V
+        u.color = white
+        u.pi = NIL
+    time = 0
+    for each vertex u in G.V
+        if u.color == WHITE
+            DFS-VISIT(G,u)
+}
+DFS-VISIT(G,u){
+    time = time + 1
+    u.d = time
+    u.color = GRAY
+    for each vertex v in G.Adj[u]
+        if v.color == WHITE
+            v.pi = u
+            DFS-VISIT(G,v)
+    time = time + 1;
+    u.f = time
+    u.color = BLACK
+}
+*/
