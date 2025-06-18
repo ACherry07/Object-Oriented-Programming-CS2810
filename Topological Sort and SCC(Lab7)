@@ -1,0 +1,300 @@
+#include<bits/stdc++.h>
+#define ll long long
+
+using namespace std;
+
+//creating global variables for the graph
+vector<ll>hype_scores;
+vector<vector<ll>> Adj_List;
+vector<vector<ll>> transposed_Adj_List;
+vector<ll> in_edge_cnt;
+
+class GraphAlgorithm{
+    
+    public:
+
+    //Pure virtual function Query
+    virtual void Query(){}
+
+
+};
+
+class isCycle: public GraphAlgorithm{
+    
+    public:
+
+    void Query()
+    {
+        ll N = Adj_List.size();
+        vector<ll> visited(N,0);
+        for(ll i = 0; i < N; i++){
+            if(!visited[i]){
+                if(dfs(i,visited)){
+                    cout << "YES" << endl;
+                    return;
+                }
+            }
+        }
+        
+        cout << "NO" << endl;
+        
+    }
+
+    bool dfs(ll vertex, vector<ll> &visited){
+        visited[vertex] = 1;
+        for(auto i: Adj_List[vertex]){
+            if(visited[i] == 1) return true;
+            if(visited[i] == 0){
+                if(dfs(i,visited)) return true;
+            }
+        }
+        visited[vertex] = 2;
+        return false;
+    }
+
+};
+
+class indepComponent: public GraphAlgorithm{
+    
+    public:
+
+    void Query()
+    {
+        ll N = Adj_List.size();
+        vector<ll> visited(N,0);
+        stack<ll> vertex_order;  
+        for(ll i = 0; i < N; i++){
+            if(!visited[i]){
+                dfs(i,visited,vertex_order);
+            }
+        } 
+        visited.assign(N,0);
+        ll SCC_cnt = 0;
+        ll max_SCC_size = 0;
+        while(!vertex_order.empty()){
+            ll i = vertex_order.top(); 
+            vertex_order.pop();
+            if(!visited[i]){
+                SCC_cnt++;
+                ll size = 0;
+                dfs_rev(i,visited, size);
+                if(size > max_SCC_size) max_SCC_size = size;
+            }
+        } 
+        cout << SCC_cnt << " " << max_SCC_size << endl;
+    }
+
+    void dfs(ll vertex, vector<ll> &visited, stack<ll> &vertex_order){
+        visited[vertex] = 1;
+        for(auto i: Adj_List[vertex]){
+            if(!visited[i]){
+                dfs(i,visited,vertex_order);
+            }
+        }
+        visited[vertex] = 2;
+        vertex_order.push(vertex);
+    }
+
+    void dfs_rev(ll vertex, vector<ll> &visited, ll &size){
+        size++;
+        visited[vertex] = 1;
+        for(auto i: transposed_Adj_List[vertex]){
+            if(!visited[i]){
+                dfs_rev(i,visited,size);
+            }
+        }
+        visited[vertex] = 2;
+    }
+};
+
+class validOrder: public GraphAlgorithm{
+    public:
+
+    void Query()
+    {
+        ll N = Adj_List.size();
+        vector<ll> visited(N, 0);
+        vector<ll> topo_sort;
+        priority_queue<ll, vector<ll>, greater<ll>> pq_indegree; //priority queue based on indegree of all vertices
+        vector<ll> in_edge_cnt1 = in_edge_cnt;
+        for(ll i = 0; i < N; i++){
+            if(in_edge_cnt1[i] == 0){
+                pq_indegree.push(i);
+            }
+        
+        }
+
+        while(!pq_indegree.empty()){
+            ll vertex = pq_indegree.top();
+            pq_indegree.pop();
+            topo_sort.push_back(vertex);
+
+            for(auto x: Adj_List[vertex]){
+                if(--in_edge_cnt1[x] == 0){
+                    pq_indegree.push(x);
+                }
+            }
+
+        }
+
+        if(topo_sort.size() != N){
+            cout << "NO" << endl;
+            return;
+        }
+        for_each(topo_sort.begin(), topo_sort.end(), [](ll x){cout << x+1 << " ";});
+        cout << endl;
+    }
+};
+
+class maxHype: public GraphAlgorithm{
+    public:
+
+    void Query()
+    {
+        
+        ll N = Adj_List.size();
+        vector<ll> visited(N,0);
+        stack<ll> vertex_order;  
+        vector<vector<ll>> SCCs;
+        vector<set<ll>> condensed_adj_list;
+        vector<ll> roots(N,0); //To set a root component for each vertex's SCC
+        vector<ll> condensed_hype_score;
+        for(ll i = 0; i < N; i++){
+            if(!visited[i]){
+                dfs(i,visited,vertex_order);
+            }
+        } 
+        visited.assign(N,0);
+        ll SCC_cnt = 0;
+        
+        
+        while(!vertex_order.empty()){
+            ll i = vertex_order.top(); 
+            vertex_order.pop();
+            if(!visited[i]){
+                SCC_cnt++;
+                vector<ll> component;
+                dfs_rev(i,visited, component);
+                SCCs.push_back(component);
+                condensed_hype_score.push_back(0);
+                for(auto u: component){
+                    
+                    roots[u] = SCC_cnt-1;
+                    condensed_hype_score[SCC_cnt-1] += hype_scores[u];
+                    
+                }
+            }
+        } 
+        ll N1 = SCCs.size();
+        condensed_adj_list.resize(N1,{});
+
+        for(ll v = 0; v < N; v++){
+            for(auto u: Adj_List[v]){
+                if(roots[v] != roots[u]){
+                    condensed_adj_list[roots[v]].insert(roots[u]);
+                }
+            }
+        }
+        
+        vector<ll> in_edge_cnt1(N1,0);
+        for(ll v = 0; v < N1; v++){
+            for(auto x: condensed_adj_list[v]){
+                in_edge_cnt1[x]++;
+            }
+        }
+        vector<ll> maxhype_list(N1,0);
+        vector<ll> condensed_visited(N1,0);
+        for(ll v = 0; v < N1; v++){
+            if(in_edge_cnt1[v] == 0){
+                maxhype_list[v] = max_hype(v,condensed_visited,condensed_adj_list,condensed_hype_score, maxhype_list);
+            }
+        }
+        cout << *max_element(maxhype_list.begin(),maxhype_list.end()) << endl;
+    }
+
+    void dfs(ll vertex, vector<ll> &visited, stack<ll> &vertex_order){
+        visited[vertex] = 1;
+        for(auto i: Adj_List[vertex]){
+            if(!visited[i]){
+                dfs(i,visited,vertex_order);
+            }
+        }
+        visited[vertex] = 2;
+        vertex_order.push(vertex);
+    }
+
+    void dfs_rev(ll vertex, vector<ll> &visited, vector<ll> &output){
+        visited[vertex] = 1;
+        for(auto i: transposed_Adj_List[vertex]){
+            if(!visited[i]){
+                dfs_rev(i,visited,output);
+            }
+        }
+        output.push_back(vertex);
+        visited[vertex] = 2;
+    }
+
+    ll max_hype(ll vertex, vector<ll> &visited, vector<set<ll>> &condensed_adj_list, vector<ll> &condensed_hype_scores, vector<ll> &maxhype_list){
+        visited[vertex] = 1;
+        ll maxhype = 0;
+        for(auto v: condensed_adj_list[vertex]){
+            if(!visited[v]){
+                ll temphype = max_hype(v,visited,condensed_adj_list,condensed_hype_scores,maxhype_list);
+                if(temphype > maxhype) maxhype = temphype;
+            }
+            else{
+                ll temphype = maxhype_list[v];
+                if(temphype > maxhype) maxhype = temphype;
+            }
+        }
+        visited[vertex] = 2;
+        maxhype_list[vertex] = maxhype + condensed_hype_scores[vertex];
+        return maxhype + condensed_hype_scores[vertex];
+
+    }
+
+};
+
+int main(){
+    isCycle Q1;
+    indepComponent Q2;
+    validOrder Q3;
+    maxHype Q4;
+    ll N, M; //N is number of events, M is number of dependencies
+    cin >> N >> M;
+    ll u, v; //vertex variables
+    ll Q; //Number of queries
+    hype_scores.resize(N);
+    Adj_List.resize(N);
+    in_edge_cnt.resize(N,0);
+    transposed_Adj_List.resize(N);
+    for(ll i = 0; i < N; i++){
+        cin >> hype_scores[i];
+    }
+    for(ll i = 0; i < M; i++){
+        cin >> u >> v;
+        Adj_List[u-1].push_back(v-1);
+        transposed_Adj_List[v-1].push_back(u-1);
+        in_edge_cnt[v-1]++;
+    }
+
+    cin >> Q;
+    ll Qtype;
+    for(int i = 0; i < Q; i++){
+        cin >> Qtype;
+        if(Qtype == 1){
+            Q1.Query();
+        }
+        else if (Qtype == 2){
+            Q2.Query();
+        }
+        else if (Qtype == 3){
+            Q3.Query();
+        }
+        else if (Qtype == 4){
+            Q4.Query();
+        }
+    }
+
+    return 0;
+}
