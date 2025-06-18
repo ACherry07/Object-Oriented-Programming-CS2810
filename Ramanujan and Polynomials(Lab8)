@@ -1,0 +1,419 @@
+#include<bits/stdc++.h>
+#define ll long long int
+#define ld long double
+
+using namespace std;
+
+class Complex{
+    public:
+    ll real;
+    ll imag;
+    
+    //Default constructor
+    Complex(){
+        real = 0;
+        imag = 0;
+    }
+
+    //Constructor
+    Complex(ll r, ll i){
+        real = r;
+        imag = i;
+    }
+
+    //multiply
+    Complex operator *(Complex& c2){
+        ll re, im;
+        re = real*c2.real - imag*c2.imag;
+        im = real*c2.imag + imag*c2.real;
+        Complex result(re, im);
+        return result;
+    }
+
+    //add
+    Complex operator +(Complex& c2){
+        ll re, im;
+        re = real + c2.real;
+        im = imag + c2.imag;
+        Complex result(re, im);
+        return result;
+    }
+
+    //subtract
+    Complex operator -(Complex& c2){
+        ll re, im;
+        re = real - c2.real;
+        im = imag - c2.imag;
+        Complex result(re, im);
+        return result;
+    }
+
+    //Divide by float
+    Complex operator /(ld n){
+        ll re, im;
+        re = real/n;
+        im = imag/n;
+        Complex result(re, im);
+        return result;
+    }
+
+};
+
+//Defining the classes
+template<class T> class PolyDifferentiation;
+template<class T> class PolyMultiplication;
+template<class T> class PolyEvaluation;
+
+template<class T>
+class Polynomial{
+    public:
+        ll deg;
+        vector<T> coefficients;
+        //default constructor
+        Polynomial(){
+
+        }
+
+        //constructor
+        Polynomial(vector<T> coeff, ll d){
+            coefficients = coeff;
+            deg = d;
+        }
+
+        //overloading *
+        Polynomial operator *(Polynomial <T> &b){
+            PolyMultiplication<T> PM;
+            return PM.divideandconquer(*this,b);        
+        }
+
+        void print(){
+            cout << fixed << setprecision(6);
+            for(ll i = 0; i < deg; i++){
+                cout << coefficients[i] << " ";
+            }
+            cout << endl;
+        }
+
+};
+
+//Multiplication class
+template<class T>
+class PolyMultiplication{
+    public:
+    Polynomial<T> a;
+    Polynomial<T> b;
+    vector<T> ans;
+    //Default constructor
+    PolyMultiplication(){
+
+    }
+
+    //constructor
+    PolyMultiplication(Polynomial<T> p1, Polynomial<T> p2){
+        a = p1;
+        b = p2;
+    }
+
+    //Divide and conquer caller
+    Polynomial<T> divideandconquer(Polynomial<T> &a, Polynomial<T> &b){
+        ll ans_deg = a.deg + b.deg - 1;
+        ll max_deg = max(a.deg, b.deg);
+        vector<T> v1 = a.coefficients;
+        v1.resize(max_deg);
+        vector<T> v2 = b.coefficients;
+        v2.resize(max_deg);
+        vector<T> ans_coeff = divideandconquermultiply(v1,v2,max_deg);
+        ans_coeff.resize(ans_deg);
+        //vector<T> ans_coeff(max_deg);
+        Polynomial<T> ans(ans_coeff,ans_deg);
+        return ans;
+    }
+
+    //Divide and conquer implementation of multiply
+    vector<T> divideandconquermultiply(vector<T> &a, vector<T> &b,ll n){
+        if(n == 0){
+            vector<T> ans(0);
+            return ans;
+        }
+
+        if(n == 1){
+            vector<T> ans(1);
+            ans[0] = a[0] * b[0];
+            return ans;
+        }
+
+        ll half_size = (n+1)/2;
+        vector<T> a1(half_size);
+        vector<T> a2(n-half_size);
+        vector<T> b1(half_size);
+        vector<T> b2(n-half_size);
+        
+        for(ll i = 0; i < half_size; i++){
+            a1[i] = a[i];
+            b1[i] = b[i];
+        }
+
+        vector<T> a1_plus_a2 = a1;
+        vector<T> b1_plus_b2 = b1;
+        for(ll i = half_size; i < n; i++){
+            a2[i-half_size] = a[i];
+            b2[i-half_size] = b[i];
+            a1_plus_a2[i-half_size] = a1_plus_a2[i-half_size] + a2[i-half_size];
+            b1_plus_b2[i-half_size] = b1_plus_b2[i-half_size] + b2[i-half_size];
+        }
+
+        //recursively call divideandconquer
+        vector<T> X = divideandconquermultiply(a1_plus_a2,b1_plus_b2,half_size);
+        vector<T> Y = divideandconquermultiply(a1,b1,half_size);
+        vector<T> Z = divideandconquermultiply(a2,b2,n-half_size);
+        
+        vector<T> a1b2_plus_a2b1 = X;
+        for(ll i = 0; i < Y.size(); i++){
+            a1b2_plus_a2b1[i] = a1b2_plus_a2b1[i] - Y[i];
+        }
+        for(ll i = 0; i < Z.size(); i++){
+            a1b2_plus_a2b1[i] = a1b2_plus_a2b1[i] - Z[i];
+        }
+
+        vector<T> ans(2*n-1);
+        for(ll i = 0; i < Y.size(); i++){
+            ans[i] = ans[i] + Y[i];
+        }
+        for(ll i = 0; i < a1b2_plus_a2b1.size(); i++){
+            ans[half_size+i] = ans[half_size+i] + a1b2_plus_a2b1[i];
+        }
+        for(ll i = 2*n-1 - Z.size(); i < 2*n-1; i++){
+            ans[i] = ans[i] + Z[i-(2*n-1 - Z.size())];
+        }
+
+        return ans;
+    }
+
+    //Bruteforce method
+    // Polynomial<T> bruteforce(Polynomial<T> &a, Polynomial<T> &b){
+    //     ll ans_deg = a.deg + b.deg - 1;
+    //     vector<T> ans_coeff(ans_deg);
+    //     for(ll i = 0; i < a.deg; i++){
+    //         for(ll j = 0; j < b.deg; j++){
+
+    //             T temp = a.coefficients[i]*b.coefficients[j];
+    //             ans_coeff[i+j] = ans_coeff[i+j] + temp;
+    //         }
+    //     }
+    //     Polynomial<T> ans(ans_coeff,ans_deg);
+    //     return ans;
+    // }
+
+
+    //Function to print answer coefficients
+    void print_coeffs(){
+        for(auto i: ans){
+            cout << i << " " << endl;
+        }
+    }
+};
+
+//Evaluation class
+template<class T>
+class PolyEvaluation{
+    public:
+    //Default Constructor
+    PolyEvaluation(){}
+    
+    void evaluate(Polynomial<T> &p, ll n){
+        ll deg = p.deg;
+        T result = p.coefficients[0];
+        for(ll i = 1; i < deg; i++){
+            result = p.coefficients[i]*pow(n,i) + result;
+        }
+        cout << fixed << setprecision(6) << result << endl;
+    }
+};
+
+//Differentiation class
+template<class T>
+class PolyDifferentiation{
+    public:
+    //Default Constructor
+    PolyDifferentiation(){}
+    
+    Polynomial<T> differentiate(Polynomial<T> &p){
+        ll deg = p.deg;
+        vector<T> ans(deg-1);
+        for(ll i = 1; i < deg; i++){
+            ans[i-1] = p.coefficients[i]*i;
+        }
+        Polynomial<T> result(ans,deg-1);
+        return result;
+    }
+
+};
+
+//overloading * for strings
+string operator *(string s1, ll x){
+    string res = "";
+    for(ll i = 0; i < x; i++){
+        res += s1;
+    }
+    return res;
+}
+
+ostream& operator << (ostream& stream, Complex& c){
+    return stream << c.real << " " << c.imag;
+}
+
+istream& operator >> (istream& stream, Complex& c){
+    return stream >> c.real >> c.imag;
+}
+
+int main(){
+    ll q; //no of queries
+    cin >> q;
+    ll op; //operation type
+    string type; //coefficient type
+    ll eval_point; //evaluation point
+    ll deg1, deg2; 
+    Complex c; // setting to a default value;
+    vector<ll> int_coeff;
+    vector<string> string_coeff;
+    vector<Complex> complex_coeff;
+    vector<ld> double_coeff;
+    for(ll i = 0; i < q; i++){
+        cin >> op;
+        if( op == 1){
+            //Multiplication
+            cin >> type;
+            if(type == "integer"){
+                cin >> deg1;
+                int_coeff.clear();
+                int_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> int_coeff[i];
+                }
+                Polynomial<ll> p1(int_coeff, deg1);
+                //p1.print();
+                cin >> deg2;
+                int_coeff.clear();
+                int_coeff.resize(deg2);
+                for(ll i = 0; i < deg2; i++){
+                    cin >> int_coeff[i];
+                }
+                Polynomial<ll> p2(int_coeff, deg2);
+                //p2.print();
+                (p1*p2).print();
+            }
+            else if(type == "float"){
+                cin >> deg1;
+                double_coeff.clear();
+                double_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> double_coeff[i];
+                }
+                Polynomial<ld> p1(double_coeff, deg1);
+                //p1.print();
+                cin >> deg2;
+                double_coeff.clear();
+                double_coeff.resize(deg2);
+                for(ll i = 0; i < deg2; i++){
+                    cin >> double_coeff[i];
+                }
+                Polynomial<ld> p2(double_coeff, deg2);
+                //p2.print();
+                (p1*p2).print();
+            }
+            else if(type == "complex"){
+                cin >> deg1;
+                complex_coeff.clear();
+                complex_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> c;
+                    complex_coeff[i] = c;
+                }
+                Polynomial<Complex> p1(complex_coeff, deg1);
+                //p1.print();
+                cin >> deg2;
+                complex_coeff.clear();
+                complex_coeff.resize(deg2);
+                for(ll i = 0; i < deg2; i++){
+                    cin >> c;
+                    complex_coeff[i] = c;
+                }
+                Polynomial<Complex> p2(complex_coeff, deg2);
+                //p2.print();
+                (p1*p2).print();
+            }
+            
+        }
+        else if(op == 2){
+            //Evaluation
+            cin >> type;
+            if(type == "integer"){
+                cin >> deg1;
+                int_coeff.clear();
+                int_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> int_coeff[i];
+                }
+                Polynomial<ll> p1(int_coeff, deg1);
+                //p1.print();
+                cin >> eval_point;
+                PolyEvaluation<ll> PE;
+                PE.evaluate(p1,eval_point);
+            }
+            else if(type == "float"){
+                cin >> deg1;
+                double_coeff.clear();
+                double_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> double_coeff[i];
+                }
+                Polynomial<ld> p1(double_coeff, deg1);
+                //p1.print();
+                cin >> eval_point;
+                PolyEvaluation<ld> PE;
+                PE.evaluate(p1, eval_point);
+            }
+            else if(type == "string"){
+                cin >> deg1;
+                string_coeff.clear();
+                string_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> string_coeff[i];
+                }
+                Polynomial<string> p1(string_coeff, deg1);
+                //p1.print();
+                cin >> eval_point;
+                PolyEvaluation<string> PE;
+                PE.evaluate(p1, eval_point);
+            }
+        }
+        else if(op == 3){
+            ////Differentiation
+            cin >> type;
+            if(type == "integer"){
+                cin >> deg1;
+                int_coeff.clear();
+                int_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> int_coeff[i];
+                }
+                Polynomial<ll> p1(int_coeff, deg1);
+                PolyDifferentiation<ll> PD;
+                PD.differentiate(p1).print();
+            }
+            else if(type == "float"){
+                cin >> deg1;
+                double_coeff.clear();
+                double_coeff.resize(deg1);
+                for(ll i = 0; i < deg1; i++){
+                    cin >> double_coeff[i];
+                }
+                Polynomial<ld> p1(double_coeff, deg1);
+                PolyDifferentiation<ld> PD;
+                PD.differentiate(p1).print();
+            }
+        }
+    }
+
+    return 0;
+}
