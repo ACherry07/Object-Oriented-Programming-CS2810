@@ -1,0 +1,217 @@
+#include<bits/stdc++.h>
+#define ll long long
+using namespace std;
+
+
+class Node{
+    public:
+    //List of neighbours
+    vector<pair<Node*,ll>> Neighbours;
+
+    //Default Constructor
+    Node(){
+    }
+
+    //Constructor
+    Node(string ID, ll p){
+        NodeID = ID;
+        parity = p;
+        dist_from_source = LLONG_MAX;
+    }
+
+    //Constructor
+    Node(string ID, ll p, ll d){
+        NodeID = ID;
+        parity = p;
+        dist_from_source = d;
+    }
+
+    //Overloading comparator
+    bool operator < (Node n2){
+        return dist_from_source < n2.dist_from_source;     
+    }
+
+
+    void add_Neighbour(Node* n, ll wt){
+        Neighbours.push_back({n, wt});
+    }
+
+    //getter
+    ll getdist(){
+        return dist_from_source;
+    }
+
+    string getID(){
+        return NodeID;
+    }
+
+    ll getparity(){
+        return parity;
+    }
+
+    //setter
+    void setdist(ll newdist){
+        dist_from_source = newdist;
+    }
+
+    void setID(string ID){
+        NodeID = ID;
+    }
+    
+    private:
+    string NodeID;
+    ll parity;
+    ll dist_from_source;
+
+};
+
+
+//Implementation of generic minimum priority queue
+template<class T>
+class PriorityQueue{
+    public:
+    
+    //Default constructor
+    PriorityQueue(){
+        arr.resize(1);
+        cursize = 0;
+    }
+
+    
+    //Returns number of elements in priority queue
+    const size_t size()const{
+        return cursize;
+    }
+
+    //To push new elements into the PQ
+    void push(const T& element){
+        //Write code here 
+        if(full()){
+            arr.resize(2*arr.size()+1);
+        }
+        ll hole = cursize + 1;
+        arr[hole] = element;
+        cursize++;
+        percolateUp(hole);
+    }
+
+    //To pop the minelement from the PQ
+    void pop(){
+        if(!empty()){
+            ll hole = 1;
+            arr[hole] = arr[cursize];
+            cursize--;
+            percolateDown(hole);
+        }
+    }
+
+    //To retrieve top element without removing it
+    const T& top() const{
+        return arr[1];
+    }
+
+    //To check if priority queue is empty
+    const bool empty() const{
+        return (cursize == 0);
+    }
+
+    //To check if the array is currently full
+    bool full() {  
+        return ((cursize+1)==arr.size());  
+    } 
+
+    private:
+    vector<T> arr;
+    ll cursize;
+
+
+    void percolateUp(ll hole){
+        if(empty()) return;
+        T e = arr[hole];
+        while(hole > 1 && e < arr[hole/2])
+        {
+            arr[hole] = arr[hole/2];
+            hole = hole/2;
+        }
+        arr[hole] = e;
+        return;
+    }
+
+    void percolateDown(ll hole){
+        if(empty()) return;
+        T e = arr[hole];
+        while((2*hole) <= cursize){
+            ll child1 = 2*hole;
+            ll child2 = 2*hole+1;
+            ll childmin = child1;
+            if(child1 <= cursize && arr[child2] < arr[child1]){
+                childmin = child2;
+            }
+
+            if(e < arr[childmin]){
+                break;
+            }
+            arr[hole] = arr[childmin];
+            hole = childmin;
+        }
+        arr[hole] = e;
+        return;
+    }
+
+};
+
+
+int main(){
+    ll n,m;
+    cin >> n >> m;
+    map<pair<string,ll>, Node*> Node_map;
+    map<pair<string,ll>,bool> Visited;
+    string room_id;
+    vector<Node> Nodes(n);
+    
+    for(ll i = 0; i < n; i++){
+        cin >> room_id;
+        Node* n0 = new Node(room_id,0);
+        Node* n1 = new Node(room_id,1);
+        Node_map[{room_id,0}] = n0;
+        Node_map[{room_id,1}] = n1;
+    }
+
+    string room_id1;
+    string room_id2;
+    ll weight;
+    for(ll i = 0; i < m; i++){
+        cin >> room_id1 >> room_id2 >> weight;
+        Node_map[{room_id1,0}]->add_Neighbour(Node_map[{room_id2,1}],weight);
+        Node_map[{room_id1,1}]->add_Neighbour(Node_map[{room_id2,0}],weight);
+        Node_map[{room_id2,0}]->add_Neighbour(Node_map[{room_id1,1}],weight);
+        Node_map[{room_id2,1}]->add_Neighbour(Node_map[{room_id1,0}],weight);
+    }
+    string source;
+    string destination;
+    cin >> source >> destination;
+    PriorityQueue<Node> pq;
+    Node_map[{source,0}]->setdist(0);
+    pq.push(*Node_map[{source,0}]);
+    while(!pq.empty()){
+        Node temp = pq.top();
+        pq.pop();
+        if(temp.getID() == destination && temp.getparity() == 0){
+            cout << temp.getdist() << endl;
+            return 0;
+        }
+
+        ll dist = temp.getdist();
+        for(auto nodes: temp.Neighbours){
+            Node* temp2 = nodes.first;
+            ll wt = nodes.second;
+            if(dist + wt < temp2->getdist()){
+                temp2->setdist(dist+wt);
+                Node t = *temp2;
+                pq.push(t);
+            }
+        }
+    }
+    cout << "-1" << endl;
+    return 0;
+}
